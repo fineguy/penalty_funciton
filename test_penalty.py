@@ -13,17 +13,34 @@ import sys
 from penalty import Function, penalty_optim
 
 
-def alpha_gen(alpha0=1, beta=0.995):
+def alpha_gen(alpha0=1, beta=0.1):
     cur_val = alpha0
     while True:
         yield cur_val
         cur_val *= beta
 
 
-def solver(func, grad, x, eps):
-    res = minimize(func, x, method='CG', jac=grad, tol=eps)
-    print(res.fun, res.jac, res.x)
-    return res.x
+def solver(func, grad, x, eps, disp):
+    return minimize(func, x, method='CG', jac=grad, tol=eps)
+
+
+def test_simple():
+    f = Function(
+        lambda x: x**2,
+        lambda x: x * 2
+    )
+    g = Function(
+        lambda x: x,
+        lambda x: 1
+    )
+    P = Function(
+        lambda x: x**2,
+        lambda x: x * 2
+    )
+    x0 = 10
+
+    x_sol = penalty_optim(f, [g], P, solver, x0, alpha_gen(), disp=True, max_iter=5)
+    print(x_sol)
 
 
 def test_penalty():
@@ -40,15 +57,17 @@ def test_penalty():
         lambda x: np.array([0, 1])
     )
     P = Function(
-        lambda x: 1 / x,
-        lambda x: - 1 / x ** 2
+        lambda x: x**2,
+        lambda x: x * 2
     )
     x0 = np.array([1, 0.5])
 
-    penalty_optim(f, [g1, g2], P, solver, x0, alpha_gen(beta=0.1), disp=True, max_iter=5)
+    x_sol = penalty_optim(f, [g1, g2], P, solver, x0, alpha_gen(), disp=True, max_iter=5)
+    print(x_sol)
 
 
 def main():
+    test_simple()
     test_penalty()
 
 

@@ -9,13 +9,13 @@ import numpy as np
 import time
 
 
-def describe_iter(ind, num, f, g):
+def describe_iter(ind, x, f, g):
     print("""
-        Current iteration:      {:10d}
-        Function calls:         {:10d}
-        Function value:         {:10.6f}
-        Gradient norm:          {:10.6f}
-    """.format(ind, num, f, g))
+    Current iteration:      {:10d}
+    Current estimation:     {}
+    Function value:         {:10.6f}
+    Gradient norm:          {:10.6f}
+""".format(ind, np.array_str(x), f, np.linalg.norm(g)))
 
 
 def add_hist(hist, f, g, num, t):
@@ -48,7 +48,7 @@ class Function(object):
 
 
 def penalty_optim(f, g_list, P, solver, x0, alpha_gen,
-                  eps=1e-4, max_iter=500, max_evals=1000,
+                  eps=1e-8, max_iter=500, max_evals=1000,
                   disp=False, trace=False):
     """
         f:          function to be optimized
@@ -66,10 +66,15 @@ def penalty_optim(f, g_list, P, solver, x0, alpha_gen,
     def f_grad(x):
         return f.grad(x) + _penalty_grad(g_list, P, x) / alpha
 
-    for i, alpha in zip(range(max_iter), alpha_gen):
-        x = solver(f_func, f_grad, x, eps)
-        if alpha < eps:
+    for ind, alpha in zip(range(max_iter), alpha_gen):
+        res = solver(f_func, f_grad, x, eps, disp)
+        x = res.x
+        if _penalty_func(g_list, P, x) < eps:
             break
+        if disp:
+            describe_iter(ind, res.x, res.fun, res.jac)
+
+    return x
 
 
 def _penalty_func(g_list, P, x):
