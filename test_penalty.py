@@ -6,11 +6,10 @@ Created on Tue Oct 25 04:34:19 2016
 """
 
 import numpy as np
-# import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-import sys
 
-from penalty import Function, penalty_optim
+from penalty import penalty_optim
+from utils import Function
 
 
 def alpha_gen(alpha0=1, beta=0.1):
@@ -22,6 +21,15 @@ def alpha_gen(alpha0=1, beta=0.1):
 
 def solver(func, grad, x, eps, disp):
     return minimize(func, x, method='CG', jac=grad, tol=eps)
+
+
+def output_result(res):
+    print("""
+    Finished optimization.
+    Final approximation:    {}
+    Final function value:   {:10.6f}
+    Final gradient norm:    {:10.6f}
+""".format(np.array_str(res.x), res.fun, np.linalg.norm(res.jac)))
 
 
 def test_simple():
@@ -39,8 +47,8 @@ def test_simple():
     )
     x0 = 10
 
-    x_sol = penalty_optim(f, [g], P, solver, x0, alpha_gen(), disp=True, max_iter=5)
-    print(x_sol)
+    res = penalty_optim(f, [g], P, solver, x0, alpha_gen(), disp=True, max_iter=5)
+    output_result(res)
 
 
 def test_penalty():
@@ -62,11 +70,12 @@ def test_penalty():
     )
     x0 = np.array([1, 0.5])
 
-    x_sol = penalty_optim(f, [g1, g2], P, solver, x0, alpha_gen(), disp=True, max_iter=5)
-    print(x_sol)
+    res = penalty_optim(f, [g1, g2], P, solver, x0, alpha_gen(), disp=True)
+    output_result(res)
 
 
 def main():
+    np.set_printoptions(precision=6, suppress=True)
     test_simple()
     test_penalty()
 
