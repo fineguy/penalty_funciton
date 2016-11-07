@@ -22,16 +22,17 @@ def describe_iter(ind, x, f, g, t):
 """.format(ind, np.array_str(x), f, np.linalg.norm(g), time() - t))
 
 
-def add_hist(hist, f, g, num, t):
+def add_hist(hist, f, g, f_n, g_n, t):
     """Add information to history dictionary"""
     hist['func'].append(f)
     hist['grad'].append(g)
-    hist['n_evals'].append(num)
+    hist['f_evals'].append(f_n)
+    hist['g_evals'].append(g_n)
     hist['time'].append(t)
 
 
-def penalty_optim(f, g_list, P, solver, x, alpha_gen,
-                  eps=1e-8, max_iter=500, max_evals=1000,
+def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
+                  max_iter=500, max_func_evals=1000, max_grad_evals=1000,
                   disp=False, trace=False):
     """Solve optimization problem with given constraints
 
@@ -55,6 +56,24 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen,
     alpha_gen : iterable
         Generator for decreasing sequence of numbers converging to 0
 
+    eps : float, default=1e-8
+        Stopping criterion for maximum penalty_optim
+
+    max_iter : int, default=500
+        Stopping criterion for maximum number of iterations
+
+    max_func_evals : int, default=1000
+        Stopping criterion for maximum number of function calls
+
+    max_grad_evals : int, default=1000
+        Stopping criterion for maximum number of gradient calls
+
+    disp : boolean, default=False
+        Show optimization progress
+
+    trace : boolean, default=False
+        Return optimization history
+
     Returns
     -------
     res : OptimizeResult
@@ -63,7 +82,9 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen,
     hist : defaultdict, optional
         Dictionary that contains data for each iteration
     """
-    n_evals, hist, start_time = 0, defaultdict(list), time()
+    func_evals, grad_evals = 0, 0
+    hist = defaultdict(list)
+    start_time = time()
 
     @safe_call
     def f_func(x):
@@ -76,10 +97,19 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen,
     for ind, alpha in zip(range(max_iter), alpha_gen):
         res = solver(f_func, f_grad, x, eps, disp)
         x = res.x
-        n_evals += res.nfev
-        add_hist(hist, res.fun, res.jac, n_evals, time() - start_time)
+        func_evals += res.nfev
+        grad_evals += res.njev
+
+        if trace:
+            add_hist(hist, res.fun, res.jac, func_evals, grad_evals, time() - start_time)
 
         if _penalty_func(g_list, P, x) < eps:
+            break
+        if func_evals >= max_func_evals:
+            print("Exceeded the expected number of function evaluations")
+            break
+        if grad_evals >= max_grad_evals:
+            print("Exceeded the expected number of gradient evaluations")
             break
 
         if disp:
