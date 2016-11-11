@@ -17,7 +17,7 @@ def add_hist(hist, f, g, f_n, g_n):
     hist['g_evals'].append(g_n)
 
 
-def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
+def penalty_optim(f, g_list, g_eq_list, solver, x, alpha_gen, eps=1e-8,
                   max_iter=500, max_func_evals=1000, max_grad_evals=1000,
                   disp=False, trace=False):
     """Solve optimization problem with given constraints
@@ -28,10 +28,10 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
         Function to be optimized
 
     g_list : list of Function objects
-        Constraining functions
+        Constraints that are less or equal to 0
 
-    P : Function object
-        Penalty function
+    g_eq_list : list of Function objects
+        Contraints that are equal to 0
 
     solver : callable
         Solver function for unconstrained optimization
@@ -73,34 +73,34 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
 
     @safe_call
     def f_func(x):
-        return f.func(x) + _penalty_func(g_list, P, x) / alpha
+        return f.func(x) + _penalty_func(g_list, g_eq_list, x) / alpha
 
     @safe_call
     def f_grad(x):
-        return f.grad(x) + _penalty_grad(g_list, P, x) / alpha
+        return f.grad(x) + _penalty_grad(g_list, g_eq_list, x) / alpha
 
     for ind, alpha in zip(range(max_iter), alpha_gen):
-        res = solver(f_func, f_grad, x, eps, disp)
+        res = solver(f_func, f_grad, x, disp)
         x = res.x
         func_evals += res.nfev
         grad_evals += res.njev
-        penalty = _penalty_func(g_list, P, x)
+        penalty = _penalty_func(g_list, g_eq_list, x)
 
         if trace:
             add_hist(hist, res.fun, res.jac, func_evals, grad_evals)
 
+        if disp:
+            describe_iter(ind, res.x, res.fun, res.jac, penalty, func_evals, grad_evals)
+
         if penalty < eps:
-            print("Iteration {}. Penalty function value is less than epsilon".format(ind + 1))
+            print("Penalty function value is less than epsilon\n")
             break
         if func_evals >= max_func_evals:
-            print("Iteration {}. Exceeded the expected number of function evaluations".format(ind + 1))
+            print("Exceeded the expected number of function evaluations\n")
             break
         if grad_evals >= max_grad_evals:
-            print("Iteration {}. Exceeded the expected number of gradient evaluations".format(ind + 1))
+            print("Exceeded the expected number of gradient evaluations\n")
             break
-
-        if disp:
-            describe_iter(ind, res.x, res.fun, res.jac, penalty)
 
     if trace:
         return res, numpy_dict(hist)
@@ -108,9 +108,11 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
         return res
 
 
-def _penalty_func(g_list, P, x):
-    return sum(P.func(g.func(x)) for g in g_list)
+def _penalty_func(g_list, g_eq_list, x):
+    return (sum(max(g.func(x), 0)**2 for g in g_list) +
+            sum(g.func(x)**2 for g in g_eq_list))
 
 
-def _penalty_grad(g_list, P, x):
-    return sum(P.grad(g.func(x)) * g.grad(x) for g in g_list)
+def _penalty_grad(g_list, g_eq_list, x):
+    return (sum(max(g.func(x), 0) * g.grad(x) for g in g_list) +
+            sum(g.func(x) * g.grad(x) for g in g_eq_list))

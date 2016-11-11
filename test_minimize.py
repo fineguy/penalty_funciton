@@ -25,7 +25,7 @@ def check_result(test_name, f, jac, x0, opt=OPT, disp=True):
 
         def callback(xk):
             nonlocal iter_idx
-            describe_iter(iter_idx, xk, f(xk), jac(xk), 0)
+            describe_iter(iter_idx, xk, f(xk), jac(xk), -1, -1, -1)
             iter_idx += 1
 
         return minimize(f, x0, method='CG', jac=jac, options=opt, callback=callback)

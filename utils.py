@@ -46,7 +46,7 @@ def numpy_dict(d):
     return d
 
 
-def describe_iter(ind, x, f, g, p):
+def describe_iter(ind, x, f, g, p, f_n, g_n):
     """Pretty print information about iteration"""
     print("""
     Current iteration:      {:10d}
@@ -54,4 +54,6 @@ def describe_iter(ind, x, f, g, p):
     Function value:         {:10f}
     Gradient norm:          {:10f}
     Penalty value:          {:10f}
-""".format(ind + 1, np.array_str(x), f, np.linalg.norm(g), p))
+    Total function calls:   {:10d}
+    Total gradient calls:   {:10d}
+""".format(ind + 1, np.array_str(x), f, np.linalg.norm(g), p, g_n, g_n))
