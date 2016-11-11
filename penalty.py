@@ -5,30 +5,16 @@ Created on Tue Oct 25 02:26:18 2016
 @author: timasemenov
 """
 
-import numpy as np
 from collections import defaultdict
-from time import time
-from utils import safe_call, numpy_dict
+from utils import safe_call, numpy_dict, describe_iter
 
 
-def describe_iter(ind, x, f, g, t):
-    """Pretty print information about iteration"""
-    print("""
-    Current iteration:      {:10d}
-    Current estimation:     {}
-    Function value:         {:10.6f}
-    Gradient norm:          {:10.6f}
-    Time elapsed:           {:10.2f}
-""".format(ind, np.array_str(x), f, np.linalg.norm(g), time() - t))
-
-
-def add_hist(hist, f, g, f_n, g_n, t):
+def add_hist(hist, f, g, f_n, g_n):
     """Add information to history dictionary"""
     hist['func'].append(f)
     hist['grad'].append(g)
     hist['f_evals'].append(f_n)
     hist['g_evals'].append(g_n)
-    hist['time'].append(t)
 
 
 def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
@@ -84,7 +70,6 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
     """
     func_evals, grad_evals = 0, 0
     hist = defaultdict(list)
-    start_time = time()
 
     @safe_call
     def f_func(x):
@@ -99,21 +84,23 @@ def penalty_optim(f, g_list, P, solver, x, alpha_gen, eps=1e-8,
         x = res.x
         func_evals += res.nfev
         grad_evals += res.njev
+        penalty = _penalty_func(g_list, P, x)
 
         if trace:
-            add_hist(hist, res.fun, res.jac, func_evals, grad_evals, time() - start_time)
+            add_hist(hist, res.fun, res.jac, func_evals, grad_evals)
 
-        if _penalty_func(g_list, P, x) < eps:
+        if penalty < eps:
+            print("Iteration {}. Penalty function value is less than epsilon".format(ind + 1))
             break
         if func_evals >= max_func_evals:
-            print("Exceeded the expected number of function evaluations")
+            print("Iteration {}. Exceeded the expected number of function evaluations".format(ind + 1))
             break
         if grad_evals >= max_grad_evals:
-            print("Exceeded the expected number of gradient evaluations")
+            print("Iteration {}. Exceeded the expected number of gradient evaluations".format(ind + 1))
             break
 
         if disp:
-            describe_iter(ind, res.x, res.fun, res.jac, start_time)
+            describe_iter(ind, res.x, res.fun, res.jac, penalty)
 
     if trace:
         return res, numpy_dict(hist)

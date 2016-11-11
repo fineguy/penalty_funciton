@@ -7,6 +7,7 @@ Created on Mon Nov 7 16:49:21 2016
 
 import sys
 import numpy as np
+from time import time
 
 
 class Function(object):
@@ -43,3 +44,14 @@ def numpy_dict(d):
     for key, value in d.items():
         d[key] = np.array(value)
     return d
+
+
+def describe_iter(ind, x, f, g, p):
+    """Pretty print information about iteration"""
+    print("""
+    Current iteration:      {:10d}
+    Current estimation:     {}
+    Function value:         {:10f}
+    Gradient norm:          {:10f}
+    Penalty value:          {:10f}
+""".format(ind + 1, np.array_str(x), f, np.linalg.norm(g), p))
