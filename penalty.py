@@ -5,6 +5,7 @@ Created on Tue Oct 25 02:26:18 2016
 @author: timasemenov
 """
 
+import numpy as np
 from collections import defaultdict
 from utils import safe_call, numpy_dict, describe_iter
 
@@ -90,10 +91,10 @@ def penalty_optim(f, g_list, g_eq_list, solver, x, alpha_gen, eps=1e-8,
             add_hist(hist, res.fun, res.jac, func_evals, grad_evals)
 
         if disp:
-            describe_iter(ind, res.x, res.fun, res.jac, penalty, func_evals, grad_evals)
+            describe_iter(ind, res.x, res.fun, res.jac, penalty, func_evals, grad_evals, alpha)
 
-        if penalty < eps:
-            print("Penalty function value is less than epsilon\n")
+        if np.linalg.norm(_penalty_grad(g_list, g_eq_list, x) + f.grad(x)) < eps:
+            print("Penalty function gradient norm is less than epsilon\n")
             break
         if func_evals >= max_func_evals:
             print("Exceeded the expected number of function evaluations\n")
